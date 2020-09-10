@@ -38,7 +38,8 @@ def login():
     if data is None:
         return 'Incorrect username and password.'
     else:
-        return 'Welcome %s! Your rank is %s.' % (username, data[2])
+        project = 'Welcome %s! Your rank is %s.' % (username, data[2])
+        return project
 
 
 @app.route("/users")
