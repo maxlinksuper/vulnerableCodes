@@ -33,7 +33,7 @@ def login():
     md5 = hashlib.new('md5', password.encode('utf-8'))
     password = md5.hexdigest()
     c = CONNECTION.cursor()
-    c.execute("SELECT * FROM users WHERE username = ? and password = ?", (username, password))
+    c.execute("SELECT * FROM users WHERE username = %s and password = %s", (username, password))
     data = c.fetchone()
     if data is None:
         return 'Incorrect username and password.'
