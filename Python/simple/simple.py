@@ -28,8 +28,8 @@ CONNECTION = connect()
 
 @app.route("/login")
 def login():
-    username = request.args.get('username', '')
-    password = request.args.get('password', '')
+    username = request.args.get('username')
+    password = request.args.get('password')
     md5 = hashlib.new('md5', password.encode('utf-8'))
     password = md5.hexdigest()
     c = CONNECTION.cursor()
