@@ -466,8 +466,119 @@ if __name__ == '__main__':
         cfg = PyCFG()
         cfg.gen_cfg(slurp(args.pythonfile).strip())
         g = CFGNode.to_graph(arcs)
+
+        ## Modifiable code
+
+        # Checking for types, methods and values
+        # print (arcs)
+        # print (type(arcs))
+        # print (type(cfg))
+        # print (type(g))
+        # for a,node in cfg.founder.cache.items() :
+        #     print (a,node)
+        #     print ("SELECT" in (node.source()))
+            # print (type(node.parents))
+
+        # Building Finder Algorithm
+
+        # 1. Find the vulnerable SQL codes (SQL Injection)
+        vulnerableLines = []
+        for a,node in cfg.founder.cache.items() :
+            # print (node.source())
+            if (node.source().find('SELECT') != -1) :
+                print('found in row ' + str(node.lineno()) + ' with id = ' + str(node.rid))
+                vulnerableLines.append(node.rid)
+
+        # 2. Validating each vulnerabilities
+        validatedVulnerable = []
+        validatedSafe = []
+        # SQL Injection type
+        for i in vulnerableLines :
+            vLineNode = cfg.founder.cache.get(i)
+            vulnerable = True
+            vLineText = vLineNode.source()
+            # a. Check if the whole SQL statement was sanitized
+            esc = ["%((", "% ((", "escape_string", ", (", ",(", "{"]
+            for j in esc :
+                if (j in vLineText) :
+                    vulnerable = False
+
+            # if (("execute" not in vLineText) and ("SELECT" in vLineText)) :
+            #     vulnerable = False
+
+            # b. Check if every input were validated
+            if (vulnerable) :
+                #Find Variable that used as parameters
+                variablesText = vLineText.split('%')
+                variables = variablesText[-1].split(',')
+                variablesCount = len(variables)
+                
+                sanitize = ["escape_string", "hash"]
+                # Check for the us of qmark for each variable inside statement
+                qMarkCount = vLineText.count("?")
+                if qMarkCount == variablesCount :
+                    vulnerable = False
+
+                # Check if each variable has been sanitized inside statement
+                sCount = 0
+                for k in sanitize :
+                    sCount = sCount + variablesText[-1].count(k)
+                if (sCount >= variablesCount) :
+                    vulnerable = False
+
+                # Check if each variable has been sanitized in the lines before
+                if (vulnerable) :
+                    # Get variable names
+                    for k in range (0,variablesCount) :
+                        variables[k] = variables[k].translate({ord(a): None for a in '( )'})
+                        variables[k] = variables[k].replace("hash_pass","")
+                    
+                    # Validation process
+                    unvalidatedVariables = variables
+                    for k in variables :
+                        line = 0
+                        while line < i :
+                            currentLineNode = cfg.founder.cache.get(line)
+                            currentLineText = currentLineNode.source()
+                            
+                            for b in sanitize :
+                                if ((b in currentLineText) and (k in currentLineText)) :
+                                    unvalidatedVariables.remove(k)
+                            line += 1
+                        print(unvalidatedVariables)
+                    
+                    if unvalidatedVariables == [] :
+                        vulnerable = False
+            print(vulnerable)
+            if (vulnerable) :
+                validatedVulnerable.append(i)
+            else :
+                validatedSafe.append(i)
+        
+        print(validatedVulnerable)
+        print(validatedSafe)
+
+        # Change the vulnerable color in the pygraphviz
+        if (validatedVulnerable) :
+            # print(type(g.get_node(validatedVulnerable[0])))
+            # n = g.get_node(validatedVulnerable[0])
+            # n.attr['color'] = 'red'
+            # print(type(n))
+            # print(n)
+
+            for x in validatedSafe :
+                n = g.get_node(x)
+                n.attr['color'] = 'blue'
+
+        if (validatedSafe) :
+            for x in validatedSafe :
+                n = g.get_node(x)
+                n.attr['color'] = 'green'
+
+        ## -------------
+
         g.draw(args.pythonfile + '.png', prog='dot')
-        print(g.string(), file=sys.stderr)
+        # print(g.string(), file=sys.stderr)
     elif args.cfg:
         cfg,first,last = get_cfg(args.pythonfile)
         for i in sorted(cfg.keys()):
