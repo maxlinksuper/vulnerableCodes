@@ -483,11 +483,15 @@ if __name__ == '__main__':
 
         # 1. Find the vulnerable SQL codes (SQL Injection)
         vulnerableLines = []
+        checkInput = ["%s", "?"]
         for a,node in cfg.founder.cache.items() :
             # print (node.source())
-            if (node.source().find('SELECT') != -1) :
-                print('found in row ' + str(node.lineno()) + ' with id = ' + str(node.rid))
-                vulnerableLines.append(node.rid)
+            if (node.source().find('SELECT') != -1) or (node.source().find('UPDATE') != -1) or (node.source().find('DELETE') != -1) or (node.source().find('INSERT') != -1) :
+                for b in checkInput :
+                    if (node.source().find(b) != -1) :
+                        print(node.source(), b, (node.source().find(b)))
+                        print('found in row ' + str(node.lineno()) + ' with id = ' + str(node.rid))
+                        vulnerableLines.append(node.rid)
 
         # 2. Validating each vulnerabilities
         validatedVulnerable = []
@@ -577,6 +581,8 @@ if __name__ == '__main__':
                 n = g.get_node(x)
                 n.attr['color'] = 'green'
 
+        edge = g.get_edge('3','4')
+        edge.attr['color'] = 'red'
         ## -------------
 
         g.draw(args.pythonfile + '.png', prog='dot')
