@@ -566,9 +566,9 @@ if __name__ == '__main__':
             # print(type(n))
             # print(n)
 
-            for x in validatedSafe :
+            for x in validatedVulnerable :
                 n = g.get_node(x)
-                n.attr['color'] = 'blue'
+                n.attr['color'] = 'red'
 
         if (validatedSafe) :
             for x in validatedSafe :
