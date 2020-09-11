@@ -8,6 +8,15 @@ app.database = "sample.db"
 def index():
     return render_template('index.html')
 
+def connect_db():
+    return sqlite3.connect(app.database)
+
+# Create password hashes
+def hash_pass(passw):
+	m = hashlib.md5()
+	m.update(passw.encode('utf-8'))
+	return m.hexdigest()
+
 #API routes
 @app.route('/loginAPI', methods=['POST'])
 def loginAPI():

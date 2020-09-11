@@ -513,7 +513,7 @@ if __name__ == '__main__':
                 variables = variablesText[-1].split(',')
                 variablesCount = len(variables)
                 
-                sanitize = ["escape_string", "hash"]
+                sanitize = ["escape_string", "hash","hexdigest", "mysql_escape_string", "mysql_real_escape_string"]
                 # Check for the us of qmark for each variable inside statement
                 qMarkCount = vLineText.count("?")
                 if qMarkCount == variablesCount :
@@ -555,8 +555,10 @@ if __name__ == '__main__':
             else :
                 validatedSafe.append(i)
         
-        print(validatedVulnerable)
-        print(validatedSafe)
+        for z in validatedVulnerable :
+            print("Vulnerable Lines : " + str(z))
+        for z in validatedSafe :
+            print("Safe Lines : " + str(z))
 
         # Change the vulnerable color in the pygraphviz
         if (validatedVulnerable) :
