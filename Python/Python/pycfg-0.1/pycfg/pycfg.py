@@ -483,15 +483,18 @@ if __name__ == '__main__':
 
         # 1. Find the vulnerable SQL codes (SQL Injection)
         vulnerableLines = []
-        checkInput = ["%s", "?"]
+        checkSQL = ["SELECT", "select", "Select", "UPDATE", "update", "Update", "INSERT", "insert", "Insert", "DELETE", "Delete", "delete"]
+        checkInput = ["%s", "?", "+"]
         for a,node in cfg.founder.cache.items() :
-            # print (node.source())
-            if (node.source().find('SELECT') != -1) or (node.source().find('UPDATE') != -1) or (node.source().find('DELETE') != -1) or (node.source().find('INSERT') != -1) :
-                for b in checkInput :
-                    if (node.source().find(b) != -1) :
-                        print(node.source(), b, (node.source().find(b)))
-                        print('found in row ' + str(node.lineno()) + ' with id = ' + str(node.rid))
-                        vulnerableLines.append(node.rid)
+            print (node.source())
+            for b in checkSQL :
+                if (node.source().find(b) != -1) :
+            # if (node.source().find('SELECT') != -1) or (node.source().find('UPDATE') != -1) or (node.source().find('DELETE') != -1) or (node.source().find('INSERT') != -1) :
+                    for c in checkInput :
+                        if (node.source().find(c) != -1) :
+                            print(node.source(), c, (node.source().find(c)))
+                            print('found in row ' + str(node.lineno()) + ' with id = ' + str(node.rid))
+                            vulnerableLines.append(node.rid)
 
         # 2. Validating each vulnerabilities
         validatedVulnerable = []
@@ -581,8 +584,8 @@ if __name__ == '__main__':
                 n = g.get_node(x)
                 n.attr['color'] = 'green'
 
-        edge = g.get_edge('3','4')
-        edge.attr['color'] = 'red'
+        # edge = g.get_edge('3','4')
+        # edge.attr['color'] = 'red'
         ## -------------
 
         g.draw(args.pythonfile + '.png', prog='dot')
