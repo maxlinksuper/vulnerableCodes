@@ -1,6 +1,7 @@
 <?php
 function authenticate() {
   if( isset( $_POST[ 'Connect' ] ) ) {
+    $admin = $_POST['admin'];
     $login = $_POST[ 'login' ];
     $pass = $_POST[ 'pass' ];
 
@@ -15,6 +16,9 @@ function authenticate() {
     // SELECT * FROM users WHERE 1=1
     // which is equivalent to:
     // SELECT * FROM users
+    if ($admin == "1") {
+      $query = "DELETE * FROM users WHERE login = '". $login . "' AND pass = '" . $pass . "'";
+    }
 
     $con = getDatabaseConnection();
     $result = mysqli_query($con, $query);

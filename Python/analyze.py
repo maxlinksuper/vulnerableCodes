@@ -156,7 +156,6 @@ class PyCFG:
         while not hasattr(parent, 'exit_nodes'):
             # we have ordered parents
             parent = parent.parents[0]
-
         assert hasattr(parent, 'exit_nodes')
         p = CFGNode(parents=myparents, ast=node)
 
@@ -464,6 +463,13 @@ if __name__ == '__main__':
         else:
             arcs = []
         cfg = PyCFG()
+
+        fileType = ""
+
+        if (args.pythonfile.find(".py") == -1) :
+            args.pythonfile = args.pythonfile.replace("dotFiles/","")
+            args.pythonfile = "TestFiles/" + args.pythonfile.replace(".dot",".php.py")
+            fileType = "php"
         cfg.gen_cfg(slurp(args.pythonfile).strip())
         g = CFGNode.to_graph(arcs)
 
@@ -473,6 +479,8 @@ if __name__ == '__main__':
         # print (arcs)
         # print (type(arcs))
         # print (type(cfg))
+        # print(slurp(args.pythonfile).strip())
+        # print(args.pythonfile.find(".py") != -1)
         # print (type(g))
         # for a,node in cfg.founder.cache.items() :
         #     print (a,node)
@@ -484,26 +492,32 @@ if __name__ == '__main__':
         # 1. Find the vulnerable SQL codes (SQL Injection)
         vulnerableLines = []
         checkSQL = ["SELECT", "select", "Select", "UPDATE", "update", "Update", "INSERT", "insert", "Insert", "DELETE", "Delete", "delete"]
-        checkInput = ["%s", "?", "+"]
+        checkInput = ["%s", "?", "+", "$"]
+        SQLCommand = []
         for a,node in cfg.founder.cache.items() :
-            print (node.source())
+            # print (node.source())
             for b in checkSQL :
                 if (node.source().find(b) != -1) :
+                    SQLCommand.append(b)
             # if (node.source().find('SELECT') != -1) or (node.source().find('UPDATE') != -1) or (node.source().find('DELETE') != -1) or (node.source().find('INSERT') != -1) :
                     for c in checkInput :
-                        if (node.source().find(c) != -1) :
-                            print(node.source(), c, (node.source().find(c)))
-                            print('found in row ' + str(node.lineno()) + ' with id = ' + str(node.rid))
+                        rightSideofSQLStatement = node.source().partition(b)
+                        print(rightSideofSQLStatement)
+                        if (rightSideofSQLStatement[-1].find(c) != -1) :
+                            # print(node.source(), c, (node.source().find(c)))
+                            # print('found in row ' + str(node.lineno()) + ' with id = ' + str(node.rid))
                             vulnerableLines.append(node.rid)
 
         # 2. Validating each vulnerabilities
         validatedVulnerable = []
         validatedSafe = []
         # SQL Injection type
+        countAnalyze = 0
         for i in vulnerableLines :
             vLineNode = cfg.founder.cache.get(i)
             vulnerable = True
             vLineText = vLineNode.source()
+            print("Analyzing Statement : " + vLineText)
             # a. Check if the whole SQL statement was sanitized
             esc = ["%((", "% ((", "escape_string", ", (", ",(", "{"]
             for j in esc :
@@ -512,15 +526,40 @@ if __name__ == '__main__':
 
             # if (("execute" not in vLineText) and ("SELECT" in vLineText)) :
             #     vulnerable = False
-
-            # b. Check if every input were validated
+            
+            # b. Check if query is executed or parametrized
+            print(list(cfg.founder.cache.keys())[-1])
+            if (vulnerable) :
+                line = 0
+                while line > i :
+                    currentLineNode = cfg.founder.cache.get(line)
+                    currentLineText = currentLineNode.source()
+                    if (currentLineText.find("prepare") != -1) :
+                        vulnerable = False
+                        validatedSafe.append(i)
+            # continue
+            # c. Check if every input were validated
             if (vulnerable) :
                 #Find Variable that used as parameters
-                variablesText = vLineText.split('%')
-                variables = variablesText[-1].split(',')
+                variablesText = []
+                variables = []
+                if (fileType == "php") :
+                    # print(SQLCommand)
+                    variablesText = vLineText.split(SQLCommand[countAnalyze])
+                    variablesText = variablesText[-1].partition("$")
+                    while (variablesText[-1] != "") :
+                        variableString = variablesText[-2]
+                        variablesText = variablesText[-1].partition(" ")
+                        # print(variablesText)
+                        variables.append(variableString+variablesText[0])
+                        variablesText = variablesText[-1].partition("$")
+                else :
+                    variablesText = vLineText.split('%')
+                    variables = variablesText[-1].split(',')
                 variablesCount = len(variables)
+                print(variables)
                 
-                sanitize = ["escape_string", "hash","hexdigest", "mysql_escape_string", "mysql_real_escape_string"]
+                sanitize = ["escape_string", "hash","hexdigest", "mysql_escape_string", "mysql_real_escape_string", "md5"]
                 # Check for the us of qmark for each variable inside statement
                 qMarkCount = vLineText.count("?")
                 if qMarkCount == variablesCount :
@@ -533,6 +572,7 @@ if __name__ == '__main__':
                 if (sCount >= variablesCount) :
                     vulnerable = False
 
+                print("Sanitized inside line : " + str(sCount) + " variable(s)")
                 # Check if each variable has been sanitized in the lines before
                 if (vulnerable) :
                     # Get variable names
@@ -546,22 +586,30 @@ if __name__ == '__main__':
                         line = 0
                         while line < i :
                             currentLineNode = cfg.founder.cache.get(line)
+                            # print(cfg.founder.cache().values())
                             currentLineText = currentLineNode.source()
-                            
+                            # print(currentLineText)
                             for b in sanitize :
-                                if ((b in currentLineText) and (k in currentLineText)) :
+                                # print(b + " " + str((b in currentLineText)))
+                                # print(b in "hash_pass")
+                                # if ((b in currentLineText) and (k in currentLineText)) :
+                                if  ((currentLineText.find(b) != -1) and (currentLineText.find(k) != -1)) :
+                                    # print(k)
                                     unvalidatedVariables.remove(k)
                             line += 1
-                        print(unvalidatedVariables)
+                        print("Unvalidated Variable(s) = " + str(unvalidatedVariables))
                     
-                    if unvalidatedVariables == [] :
+                    # print(str(len(unvalidatedVariables)- sCount))
+                    if (len(unvalidatedVariables) - sCount <= 0) :
                         vulnerable = False
-            print(vulnerable)
+            print("Vulnerable = " + str(vulnerable) + "\n")
+            countAnalyze += 1
             if (vulnerable) :
                 validatedVulnerable.append(i)
             else :
                 validatedSafe.append(i)
         
+        print("-- End of Analysis --")
         for z in validatedVulnerable :
             print("Vulnerable Lines : " + str(z))
         for z in validatedSafe :
@@ -588,8 +636,15 @@ if __name__ == '__main__':
         # edge.attr['color'] = 'red'
         ## -------------
 
-        g.draw(args.pythonfile + '.png', prog='dot')
+        # fileName = args.pythonfile.replace("../", "")
+        fileName = args.pythonfile
+        if (fileType == "php") :
+            fileName = args.pythonfile.replace(".py", "")
+        fileName = fileName.replace("TestFiles/", "")
+        g.draw('Graphs/' +fileName + '.png', prog='dot')
+        # g.draw(fileName + '.png', prog='dot')
         # print(g.string(), file=sys.stderr)
+        print("Output Visualization = Graphs/" + fileName + ".png")
     elif args.cfg:
         cfg,first,last = get_cfg(args.pythonfile)
         for i in sorted(cfg.keys()):

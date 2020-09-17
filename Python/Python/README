@@ -1,9 +1,0 @@
-Percobaan membuat CFG menggunakan modul pycfg-0.1 pada file :
-1. whiletest.py (program 6 baris sebagai test)
-    Output : whiletest.py.png
-
-2. app.py (program dengan kelemahan SQL Injection)
-    Output : app.py.png
-
-Command for analyzing :
-python3 pycfg-0.1/pycfg/pycfg.py file.py -d

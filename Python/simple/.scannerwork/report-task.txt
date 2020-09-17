@@ -1,6 +1,0 @@
-projectKey=TA-SecurityIssues
-serverUrl=http://localhost:9000
-serverVersion=8.4.2.36762
-dashboardUrl=http://localhost:9000/dashboard?id=TA-SecurityIssues
-ceTaskId=AXR6AXS1XzVm9TWFNb-3
-ceTaskUrl=http://localhost:9000/api/ce/task?id=AXR6AXS1XzVm9TWFNb-3

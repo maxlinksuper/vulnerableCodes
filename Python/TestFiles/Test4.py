@@ -22,6 +22,7 @@ def hash_pass(passw):
 def loginAPI():
     if request.method == 'POST':
         uname,pword = (request.json['username'],request.json['password'])
+        uname = uname.escape_string()
         g.db = connect_db()
         cur = g.db.execute("SELECT * FROM employees WHERE username = '%s' AND password = '%s'" %(uname, hash_pass(pword)))
         if cur.fetchone():
@@ -30,7 +31,6 @@ def loginAPI():
             result = {'status': 'fail'}
         g.db.close()
         return jsonify(result)
-
 if __name__ == "__main__":
 
     #create database if it doesn't exist yet
